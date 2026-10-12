@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restriction horaire</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 550px;
+    margin: auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+h2 {
+    text-align: center;
+    color: #004990;
+    margin-top: 0;
+    margin-bottom: 25px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-weight: bold;
+    color: #004990;
+    margin-bottom: 6px;
+}
+
+input[type="time"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+button {
+    width: 100%;
+    margin-top: 25px;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #004990;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #004990;
+}
+
+.message {
+    text-align: center;
+    margin-top: 15px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="grid">
+
+        <div class="field">
+            <label>Heure d'ouverture</label>
+            <input type="time" id="startTime" value="08:00">
+        </div>
+
+        <div class="field">
+            <label>Heure de fermeture</label>
+            <input type="time" id="endTime" value="18:00">
+        </div>
+
+        <div class="field">
+            <label>Début pause déjeuner</label>
+            <input type="time" id="breakStart">
+        </div>
+
+        <div class="field">
+            <label>Fin pause déjeuner</label>
+            <input type="time" id="breakEnd">
+        </div>
+
+    </div>
+
+    <button onclick="saveHours()">Valider</button>
+
+    <div id="message" class="message"></div>
+
+</div>
+
+<script>
+
+// Paramètres récupérés depuis NFS
+const params = new URLSearchParams(window.location.search);
+
+const customerId = params.get('customerId');
+
+async function saveHours() {
+
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    const breakStart = document.getElementById('breakStart').value;
+    const breakEnd = document.getElementById('breakEnd').value;
+
+    if (!startTime || !endTime) {
+        document.getElementById('message').innerHTML =
+            '<span style="color:red">Les heures d\'ouverture et de fermeture sont obligatoires.</span>';
+        return;
+    }
+const payload = {
+    sessionId: "",
+    properties: {
+        property: [
+            {
+                name: "CUSTOMERID",
+                value: customerId
+            },
+            {
+                name: "DAYBEGINTIME",
+                value: startTime
+            },
+            {
+                name: "DAYENDTIME",
+                value: endTime
+            },
+            {
+                name: "DAYBEGINLUNCHPERIOD",
+                value: breakStart
+            },
+            {
+                name: "DAYENDLUNCHPERIOD",
+                value: breakEnd
+            }
+        ]
+    }
+};
+    try {
+
+        const response = await fetch(
+            'https://defaultdff5bd9e989f435da92e58b636bf3f.5f.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/c462c7de3342454da7b9c903ec4ccb9e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=vrvaCCBjMsX42HGl2aDlqOAmpH_B7vvT7GFWVJvfPV8',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error();
+        }
+
+        document.getElementById('message').innerHTML =
+            '<span style="color:green">✅ Horaires enregistrés avec succès</span>';
+
+    } catch (error) {
+
+        document.getElementById('message').innerHTML =
+            '<span style="color:red">❌ Erreur lors de l\'enregistrement</span>';
+
+        console.error(error);
+    }
+}
+</script>
+
+</body>
+</html>
